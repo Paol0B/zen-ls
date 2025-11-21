@@ -25,12 +25,53 @@ pub fn main() !void {
         return;
     }
 
-    // Initialize core filesystem engine
+    // Check if ultra-fast mode is requested
+    if (config.ultra_fast_mode) {
+        // Ultra-fast mode: direct syscalls, no features, maximum speed
+        var scanner = try core.UltraFastScanner.init(allocator);
+        defer scanner.deinit();
+        
+        const start_time = std.time.milliTimestamp();
+        
+        var total_count: usize = 0;
+        for (config.paths.items) |path| {
+            const count = if (config.recursive)
+                try scanner.scanRecursive(path)
+            else
+                try scanner.scanDirectory(path);
+            total_count += count;
+        }
+        
+        // Flush all output in single write
+        try scanner.flush();
+        
+        const end_time = std.time.milliTimestamp();
+        const elapsed_ms = end_time - start_time;
+        
+        // Log to stderr
+        const stderr_file = std.fs.File{ .handle = std.posix.STDERR_FILENO };
+        const stderr = stderr_file.deprecatedWriter();
+        try stderr.print("> Ultra-fast mode: Scanned {d} files in {d}ms\n", .{ total_count, elapsed_ms });
+        
+        return;
+    }
+
+    // Normal mode: Initialize core filesystem engine
     var fs_engine = try core.FilesystemEngine.init(allocator, &config);
     defer fs_engine.deinit();
 
-    // Scan directory/directories
+    // Scan directory/directories with timing
+    const start_time = std.time.milliTimestamp();
     try fs_engine.scan();
+    const end_time = std.time.milliTimestamp();
+    const elapsed_ms = end_time - start_time;
+    
+    const entries_count = fs_engine.getEntries().len;
+    
+    // Log scan results to stderr
+    const stderr_file = std.fs.File{ .handle = std.posix.STDERR_FILENO };
+    const stderr = stderr_file.deprecatedWriter();
+    try stderr.print("> Scanned {d} files in {d}ms\n", .{ entries_count, elapsed_ms });
 
     // Choose output mode based on configuration
     if (config.interactive_mode) {
@@ -86,6 +127,7 @@ fn printHelp() !void {
         \\  --galaxy                      3D galaxy filesystem visualization
         \\  
         \\Performance:
+        \\  --fast, --ultra-fast          Ultra-fast mode (no metadata, no sort, raw speed)
         \\  --turbo                       Maximum performance mode
         \\  --cache-strategy=MODE         Cache strategy (aggressive|balanced|minimal)
         \\  
