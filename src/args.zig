@@ -57,6 +57,7 @@ pub const Config = struct {
     
     // Performance
     turbo_mode: bool = false,
+    ultra_fast_mode: bool = false,
     cache_strategy: CacheStrategy = .balanced,
     
     // Developer features
@@ -168,6 +169,15 @@ fn parseLongOption(config: *Config, arg: []const u8) !void {
         config.tree_view = true;
     } else if (std.mem.eql(u8, option, "stats")) {
         config.show_stats = true;
+    } else if (std.mem.eql(u8, option, "fast") or std.mem.eql(u8, option, "ultra-fast")) {
+        config.ultra_fast_mode = true;
+        // In ultra fast mode, disable all features that slow down scanning
+        config.long_format = false;
+        config.show_icons = false;
+        config.color_mode = .never;
+        config.tree_view = false;
+        config.sort_by_size = false;
+        config.sort_by_time = false;
     } else if (std.mem.eql(u8, option, "neon")) {
         config.neon_mode = true;
         config.theme = .neon;
