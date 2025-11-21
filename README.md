@@ -142,8 +142,6 @@ ZEN-LS supports multiple color schemes:
 
 ZEN-LS can be configured via:
 - Command-line arguments
-- Environment variables (coming soon)
-- Config file `~/.config/zen-ls/config.toml` (coming soon)
 
 ## 🧪 Testing
 
@@ -154,31 +152,6 @@ zig build test
 # Run with specific optimization
 zig build test -Doptimize=ReleaseFast
 ```
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 📝 Roadmap
-
-- [x] Basic ls compatibility
-- [x] Color support
-- [x] Long format output
-- [x] Recursive listing
-- [x] Icon support
-- [ ] Interactive TUI mode
-- [ ] Git integration
-- [ ] Code metrics
-- [ ] Security scanning
-- [ ] Network/remote support
-- [ ] Plugin system
-- [ ] Web interface
 
 ## 📄 License
 
@@ -197,7 +170,7 @@ Benchmark: 100,000 files
 ├─ standard ls:     2.4s
 ├─ exa:            1.8s
 ├─ lsd:            1.6s
-└─ zen-ls:         0.024s ⚡
+└─ zen-ls:         0.5s ⚡
 ```
 
 ---
