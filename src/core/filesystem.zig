@@ -25,7 +25,7 @@ pub const FilesystemEngine = struct {
     pub fn scan(self: *FilesystemEngine) !void {
         for (self.config.paths.items) |path| {
             if (self.config.recursive) {
-                try self.scanRecursive(path);
+                try self.scanRecursiveSimple(path);
             } else {
                 try self.scanDirectory(path);
             }
@@ -146,6 +146,66 @@ pub const FilesystemEngine = struct {
         
         const context = Context{ .config = self.config };
         std.mem.sort(FileEntry, self.entries.items, context, Context.lessThan);
+    }
+    
+    fn scanRecursiveSimple(self: *FilesystemEngine, root_path: []const u8) !void {
+        var dir = std.fs.cwd().openDir(root_path, .{ .iterate = true }) catch return;
+        defer dir.close();
+        
+        var iterator = dir.iterate();
+        const arena_allocator = self.arena.allocator();
+        
+        // Reusable path buffer to avoid allocations
+        var path_buffer: [std.fs.max_path_bytes]u8 = undefined;
+        
+        // Batch subdirectories to scan after finishing current directory
+        var subdirs = std.ArrayList([]const u8){};
+        defer subdirs.deinit(self.allocator);
+        
+        // Pre-allocate for typical directory size
+        try self.entries.ensureUnusedCapacity(self.allocator, 64);
+        
+        while (try iterator.next()) |entry| {
+            // Filter hidden files
+            if (!self.config.show_hidden and !self.config.show_almost_all) {
+                if (entry.name.len > 0 and entry.name[0] == '.') continue;
+            }
+            
+            if (self.config.show_almost_all) {
+                if (std.mem.eql(u8, entry.name, ".") or std.mem.eql(u8, entry.name, "..")) {
+                    continue;
+                }
+            }
+            
+            const file_entry = try FileEntry.fromDirEntry(
+                arena_allocator,
+                root_path,
+                entry,
+                self.config,
+            );
+            
+            try self.entries.append(self.allocator, file_entry);
+            
+            // Queue subdirectories for later scanning
+            if (entry.kind == .directory and 
+                !std.mem.eql(u8, entry.name, ".") and 
+                !std.mem.eql(u8, entry.name, "..")) 
+            {
+                // Build path directly in stack buffer
+                const full_path = try std.fmt.bufPrint(
+                    &path_buffer,
+                    "{s}/{s}",
+                    .{ root_path, entry.name }
+                );
+                const path_copy = try arena_allocator.dupe(u8, full_path);
+                try subdirs.append(self.allocator, path_copy);
+            }
+        }
+        
+        // Scan subdirectories after finishing current level
+        for (subdirs.items) |subdir| {
+            try self.scanRecursiveSimple(subdir);
+        }
     }
     
     pub fn getEntries(self: *const FilesystemEngine) []const FileEntry {

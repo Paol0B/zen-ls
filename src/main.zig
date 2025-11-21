@@ -78,9 +78,11 @@ fn printHelp() !void {
         \\  --stats                       Show detailed statistics
         \\  
         \\Visual Enhancement:
-        \\  --neon                        Neon glow effects
-        \\  --matrix                      Matrix-style visualization
-        \\  --cyberpunk                   Cyberpunk theme with glitch effects
+        \\  --neon                        Neon theme with vibrant colors
+        \\  --matrix                      Matrix-style green theme
+        \\  --cyberpunk                   Cyberpunk pink/cyan theme
+        \\  --pastel                      Soft pastel colors
+        \\  --monochrome                  Monochrome theme
         \\  --galaxy                      3D galaxy filesystem visualization
         \\  
         \\Performance:

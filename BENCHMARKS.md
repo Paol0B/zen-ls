@@ -25,16 +25,24 @@ $ time zen-ls /usr/bin
 ### Recursive `/usr` 
 ```bash
 $ time zen-ls -R /usr
+$ time zen-ls --icons --cyberpunk -R /usr
+$ time ls -R /usr
 ```
-- **Result: 0.636s**
+- **ZEN-LS**: 0.675s (230ms user, 440ms system)
+- **ZEN-LS + Icons + Theme**: 0.830s (290ms user, 540ms system)
+- **GNU ls**: 0.258s (170ms user, 90ms system)
 - Files: 350,519
+- **Analysis**: GNU ls is 2.6x faster. Icons/theme add ~23% overhead (155ms for 350K files)
 
 ### Recursive Home Directory
 ```bash
 $ time zen-ls -R ~
+$ time ls -R ~
 ```
-- **Result: 0.178s**
-- Files: 90,506
+- **ZEN-LS**: 0.205s (60ms user, 130ms system)
+- **GNU ls**: 0.102s (50ms user, 50ms system)
+- Files: 90,508
+- **Analysis**: GNU ls is 2x faster, primarily due to lower I/O overhead
 
 ## Performance Optimizations Implemented
 

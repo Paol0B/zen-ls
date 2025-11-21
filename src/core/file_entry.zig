@@ -24,7 +24,11 @@ pub const FileEntry = struct {
         config: *const Config
     ) !FileEntry {
         const name = try allocator.dupe(u8, entry.name);
-        const path = try std.fs.path.join(allocator, &[_][]const u8{ parent_path, entry.name });
+        
+        // Build path on stack first, then allocate only if needed
+        var path_buffer: [std.fs.max_path_bytes]u8 = undefined;
+        const path_tmp = try std.fmt.bufPrint(&path_buffer, "{s}/{s}", .{ parent_path, entry.name });
+        const path = try allocator.dupe(u8, path_tmp);
         
         const is_directory = entry.kind == .directory;
         const is_symlink = entry.kind == .sym_link;

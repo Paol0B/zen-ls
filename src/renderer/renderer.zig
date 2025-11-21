@@ -3,6 +3,9 @@ const Config = @import("../args.zig").Config;
 const core = @import("../core/core.zig");
 const colors = @import("colors.zig");
 const formatter = @import("formatter.zig");
+const icons = @import("../ui/icons.zig");
+const themes = @import("../ui/themes.zig");
+const TreeRenderer = @import("tree.zig").TreeRenderer;
 
 pub const RenderEngine = struct {
     allocator: std.mem.Allocator,
@@ -42,7 +45,9 @@ pub const RenderEngine = struct {
         
         // Choose rendering mode based on configuration
         if (self.config.tree_view) {
-            try self.renderTree(entries);
+            var tree_renderer = TreeRenderer.init(self.allocator, self.config);
+            const root_path = if (self.config.paths.items.len > 0) self.config.paths.items[0] else ".";
+            try tree_renderer.render(entries, root_path);
         } else if (self.config.long_format) {
             try self.renderLong(entries);
         } else if (self.config.one_per_line) {
@@ -178,8 +183,38 @@ pub const RenderEngine = struct {
     }
     
     fn printFileName(self: *RenderEngine, entry: *const core.FileEntry) !void {
+        // Print icon if enabled
+        if (self.config.show_icons) {
+            const icon = switch (self.config.icon_set) {
+                .nerd_fonts => icons.getFileIcon(entry.name, entry.is_directory, entry.is_executable),
+                .unicode => icons.getUnicodeIcon(entry.name, entry.is_directory, entry.is_executable),
+                .ascii => icons.getAsciiIcon(entry.is_directory, entry.is_executable),
+                .none => icons.Icon{ .symbol = "", .color = "" },
+            };
+            
+            if (self.color_enabled and icon.color.len > 0) {
+                try self.stdout.writeAll(icon.color);
+            }
+            try self.stdout.writeAll(icon.symbol);
+            if (icon.symbol.len > 0) {
+                try self.stdout.writeAll(" ");
+            }
+            if (self.color_enabled) {
+                try self.stdout.writeAll(colors.RESET);
+            }
+        }
+        
         if (self.color_enabled) {
-            const color_code = colors.getColorForEntry(entry, self.config);
+            const color_code = if (self.config.theme == .standard)
+                colors.getColorForEntry(entry, self.config)
+            else
+                themes.getFileTypeColor(
+                    self.config.theme,
+                    entry.name,
+                    entry.is_directory,
+                    entry.is_executable,
+                    entry.is_symlink
+                );
             try self.stdout.writeAll(color_code);
         }
         

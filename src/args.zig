@@ -1,5 +1,21 @@
 const std = @import("std");
 
+pub const IconSet = enum {
+    none,
+    nerd_fonts,
+    unicode,
+    ascii,
+};
+
+pub const Theme = enum {
+    standard,
+    neon,
+    matrix,
+    cyberpunk,
+    pastel,
+    monochrome,
+};
+
 /// Configuration structure containing all parsed command-line options
 pub const Config = struct {
     // Paths to list
@@ -28,10 +44,12 @@ pub const Config = struct {
     show_preview: bool = false,
     git_integration: bool = false,
     show_icons: bool = false,
+    icon_set: IconSet = .nerd_fonts,
     tree_view: bool = false,
     show_stats: bool = false,
     
     // Visual enhancements
+    theme: Theme = .standard,
     neon_mode: bool = false,
     matrix_mode: bool = false,
     cyberpunk_mode: bool = false,
@@ -152,10 +170,17 @@ fn parseLongOption(config: *Config, arg: []const u8) !void {
         config.show_stats = true;
     } else if (std.mem.eql(u8, option, "neon")) {
         config.neon_mode = true;
+        config.theme = .neon;
     } else if (std.mem.eql(u8, option, "matrix")) {
         config.matrix_mode = true;
+        config.theme = .matrix;
     } else if (std.mem.eql(u8, option, "cyberpunk")) {
         config.cyberpunk_mode = true;
+        config.theme = .cyberpunk;
+    } else if (std.mem.eql(u8, option, "pastel")) {
+        config.theme = .pastel;
+    } else if (std.mem.eql(u8, option, "monochrome")) {
+        config.theme = .monochrome;
     } else if (std.mem.eql(u8, option, "galaxy")) {
         config.galaxy_mode = true;
     } else if (std.mem.eql(u8, option, "turbo")) {
