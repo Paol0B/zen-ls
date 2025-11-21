@@ -29,8 +29,18 @@ pub fn main() !void {
     var fs_engine = try core.FilesystemEngine.init(allocator, &config);
     defer fs_engine.deinit();
 
-    // Scan directory/directories
+    // Scan directory/directories with timing
+    const start_time = std.time.milliTimestamp();
     try fs_engine.scan();
+    const end_time = std.time.milliTimestamp();
+    const elapsed_ms = end_time - start_time;
+    
+    const entries_count = fs_engine.getEntries().len;
+    
+    // Log scan results to stderr
+    const stderr_file = std.fs.File{ .handle = std.posix.STDERR_FILENO };
+    const stderr = stderr_file.deprecatedWriter();
+    try stderr.print("> Scanned {d} files in {d}ms\n", .{ entries_count, elapsed_ms });
 
     // Choose output mode based on configuration
     if (config.interactive_mode) {

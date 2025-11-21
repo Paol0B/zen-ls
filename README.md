@@ -166,11 +166,16 @@ MIT License - see LICENSE file for details
 ## 📊 Performance
 
 ```
-Benchmark: 100,000 files
-├─ standard ls:     2.4s
-├─ exa:            1.8s
-├─ lsd:            1.6s
-└─ zen-ls:         0.5s ⚡
+Benchmark: /usr directory (350,739 files, recursive)
+├─ GNU ls:         258ms  ⚡
+├─ zen-ls:         333ms  
+└─ zen-ls+icons:   399ms  🎨
+
+zen-ls is competitive with GNU ls while providing:
+- Rich visual features (icons, themes, colors)
+- Interactive TUI mode
+- Extended metadata and filtering
+- Cross-platform Zig implementation
 ```
 
 ---
