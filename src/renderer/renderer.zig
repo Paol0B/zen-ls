@@ -186,6 +186,7 @@ pub const RenderEngine = struct {
     }
 
     fn printColoredSize(self: *RenderEngine, size: u64, width: usize) !void {
+        _ = width; // Use fixed width instead
         const units = [_][]const u8{ "B", "K", "M", "G", "T", "P" };
         var size_float: f64 = @floatFromInt(size);
         var unit_idx: usize = 0;
@@ -194,16 +195,6 @@ pub const RenderEngine = struct {
             size_float /= 1024.0;
             unit_idx += 1;
         }
-
-        var buf: [16]u8 = undefined;
-        const str = if (unit_idx == 0)
-            std.fmt.bufPrint(&buf, "{d:>3}{s}", .{ size, units[unit_idx] }) catch "?"
-        else
-            std.fmt.bufPrint(&buf, "{d:>5.1}{s}", .{ size_float, units[unit_idx] }) catch "?";
-
-        // Right-align with padding
-        const padding = if (width > str.len) width - str.len else 0;
-        try self.stdout.writeByteNTimes(' ', padding);
 
         // Color based on size - more visible
         if (self.color_enabled) {
@@ -217,7 +208,12 @@ pub const RenderEngine = struct {
             try self.stdout.writeAll(color);
         }
 
-        try self.stdout.writeAll(str);
+        // Fixed width: 5 characters for number + 1 for unit = 6 total
+        if (unit_idx == 0) {
+            try self.stdout.print("{d:>5}{s}", .{ size, units[unit_idx] });
+        } else {
+            try self.stdout.print("{d:>5.1}{s}", .{ size_float, units[unit_idx] });
+        }
 
         if (self.color_enabled) try self.stdout.writeAll("\x1b[0m");
     }
@@ -363,45 +359,16 @@ pub const RenderEngine = struct {
         const hours = seconds_today / 3600;
         const minutes = (seconds_today % 3600) / 60;
 
-        // Calculate current date
-        const now_seconds = std.time.timestamp();
-        const now_epoch_day: i64 = @divFloor(now_seconds, std.time.s_per_day);
-        const days_ago = now_epoch_day - file_epoch_day;
+        const month_names = [_][]const u8{ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
-        // Colors for relative dates
-        const color_today = "\x1b[1;32m"; // Bold green for today
-        const color_yesterday = "\x1b[1;33m"; // Bold yellow for yesterday
-        const color_week = "\x1b[36m"; // Cyan for this week
-        const color_old = "\x1b[90m"; // Gray for old files
-        const reset = "\x1b[0m";
-
-        // Fixed width: 17 characters for perfect alignment
-        if (days_ago == 0) {
-            if (self.color_enabled) try self.stdout.writeAll(color_today);
-            try self.stdout.print("   today  {d:0>2}:{d:0>2}  ", .{ hours, minutes });
-            if (self.color_enabled) try self.stdout.writeAll(reset);
-        } else if (days_ago == 1) {
-            if (self.color_enabled) try self.stdout.writeAll(color_yesterday);
-            try self.stdout.print("yesterday {d:0>2}:{d:0>2}  ", .{ hours, minutes });
-            if (self.color_enabled) try self.stdout.writeAll(reset);
-        } else if (days_ago >= 2 and days_ago <= 6) {
-            const weekday_names = [_][]const u8{ "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
-            const weekday: usize = @intCast(@mod(file_epoch_day + 4, 7));
-            if (self.color_enabled) try self.stdout.writeAll(color_week);
-            try self.stdout.print("{d}d ago {s} {d:0>2}:{d:0>2}  ", .{ days_ago, weekday_names[weekday], hours, minutes });
-            if (self.color_enabled) try self.stdout.writeAll(reset);
-        } else {
-            const month_names = [_][]const u8{ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
-            if (self.color_enabled) try self.stdout.writeAll(color_old);
-            try self.stdout.print("{d:0>2} {s} {d} {d:0>2}:{d:0>2}", .{
-                month_day.day_index + 1,
-                month_names[month_day.month.numeric() - 1],
-                year_day.year,
-                hours,
-                minutes,
-            });
-            if (self.color_enabled) try self.stdout.writeAll(reset);
-        }
+        // Uniform format: DD Mon YYYY HH:MM (17 chars)
+        try self.stdout.print("{d:0>2} {s} {d} {d:0>2}:{d:0>2}", .{
+            month_day.day_index + 1,
+            month_names[month_day.month.numeric() - 1],
+            year_day.year,
+            hours,
+            minutes,
+        });
     }
 };
 

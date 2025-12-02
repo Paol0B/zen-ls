@@ -7,4 +7,5 @@ zig-out/
 *.swp
 *.swo
 *~
-.DS_Store
+.DS_Store``
+.idea/
