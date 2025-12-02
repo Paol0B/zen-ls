@@ -8,3 +8,4 @@ zig-out/
 *.swo
 *~
 .DS_Store
+.idea/

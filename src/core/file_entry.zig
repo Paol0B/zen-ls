@@ -1,7 +1,7 @@
 const std = @import("std");
 const Config = @import("../args.zig").Config;
 
-// Import C per lstat
+// C import for lstat (doesn't follow symlinks)
 const c = @cImport({
     @cInclude("sys/stat.h");
 });
@@ -56,42 +56,39 @@ pub const FileEntry = struct {
             };
         }
 
-        const stat = std.fs.cwd().statFile(path) catch {
-            return FileEntry{
-                .name = name,
-                .path = path,
-                .size = 0,
-                .is_directory = is_directory,
-                .is_symlink = is_symlink,
-                .is_executable = false,
-                .permissions = 0,
-                .uid = 0,
-                .gid = 0,
-                .inode = 0,
-                .mtime = 0,
-                .atime = 0,
-                .ctime = 0,
-                .link_target = null,
-            };
-        };
-
-        // Ottieni uid/gid usando lstat direttamente
+        // Use lstat via C to not follow symlinks (important for broken symlinks)
         var cstat: c.struct_stat = undefined;
-        const cpath = @as([*:0]const u8, @ptrCast(path.ptr));
+        var path_buf: [std.fs.max_path_bytes:0]u8 = undefined;
+        @memcpy(path_buf[0..path.len], path);
+        path_buf[path.len] = 0;
+        const cpath: [*:0]const u8 = &path_buf;
+
+        var mode: u32 = 0;
+        var size: u64 = 0;
         var uid: u32 = 0;
         var gid: u32 = 0;
+        var inode: u64 = 0;
+        var mtime: i128 = 0;
+        var atime: i128 = 0;
+        var ctime: i128 = 0;
+
         if (c.lstat(cpath, &cstat) == 0) {
+            mode = @intCast(cstat.st_mode);
+            size = @intCast(cstat.st_size);
             uid = cstat.st_uid;
             gid = cstat.st_gid;
+            inode = cstat.st_ino;
+            mtime = @as(i128, cstat.st_mtim.tv_sec) * std.time.ns_per_s + cstat.st_mtim.tv_nsec;
+            atime = @as(i128, cstat.st_atim.tv_sec) * std.time.ns_per_s + cstat.st_atim.tv_nsec;
+            ctime = @as(i128, cstat.st_ctim.tv_sec) * std.time.ns_per_s + cstat.st_ctim.tv_nsec;
         }
 
         // Check if executable
-        const mode = stat.mode;
         const is_executable = (mode & 0o111) != 0;
 
-        // Read symlink target only if absolutely needed
+        // Read symlink target for display in long format
         var link_target: ?[]const u8 = null;
-        if (is_symlink and config.dereference) {
+        if (is_symlink and config.long_format) {
             var buf: [std.fs.max_path_bytes]u8 = undefined;
             if (std.fs.cwd().readLink(path, &buf)) |target| {
                 link_target = try allocator.dupe(u8, target);
@@ -101,17 +98,17 @@ pub const FileEntry = struct {
         return FileEntry{
             .name = name,
             .path = path,
-            .size = stat.size,
+            .size = size,
             .is_directory = is_directory,
             .is_symlink = is_symlink,
             .is_executable = is_executable and !is_directory,
             .permissions = @intCast(mode & 0o777),
             .uid = uid,
             .gid = gid,
-            .inode = stat.inode,
-            .mtime = stat.mtime,
-            .atime = stat.atime,
-            .ctime = stat.ctime,
+            .inode = inode,
+            .mtime = mtime,
+            .atime = atime,
+            .ctime = ctime,
             .link_target = link_target,
         };
     }
