@@ -1,6 +1,6 @@
 # ZEN-LS: Zero-overhead Enhanced Navigator for Linux Systems
 
-![Version](https://img.shields.io/badge/version-0.1.0--alpha-blue)
+![Version](https://img.shields.io/badge/version-1.1.0-blue)
 ![Zig](https://img.shields.io/badge/zig-0.15.2-orange)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
